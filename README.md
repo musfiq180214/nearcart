@@ -22,11 +22,6 @@ The app features a clean, white-themed interface with glassmorphic elements and 
 - **Animations**: [flutter_animate](https://pub.dev/packages/flutter_animate)
 - **Geolocation**: [geolocator](https://pub.dev/packages/geolocator)
 
-## 📸 Screenshots
-
-| Map View | Home Screen | Add Store |
-|---|---|---|
-| ![Map](https://via.placeholder.com/200x400?text=Map+View) | ![Home](https://via.placeholder.com/200x400?text=Home+Screen) | ![Add](https://via.placeholder.com/200x400?text=Add+Store) |
 
 ## 🛠️ Installation & Setup
 
