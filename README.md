@@ -23,7 +23,4 @@ The app features a clean, white-themed interface with glassmorphic elements and 
 - **Geolocation**: [geolocator](https://pub.dev/packages/geolocator)
 
 
-## 🛠️ Installation & Setup
-
-1. **Clone the repository**:
    
