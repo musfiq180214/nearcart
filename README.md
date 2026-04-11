@@ -1,17 +1,34 @@
-# nearcart
+# NearCart 🛒
 
-A new Flutter project.
+NearCart is a modern, location-based shopping assistant built with Flutter. It helps users discover local stores, pin them on an interactive map, and manage shopping lists tailored to specific locations. 
 
-## Getting Started
+The app features a clean, white-themed interface with glassmorphic elements and high-performance map rendering.
 
-This project is a starting point for a Flutter application.
+## ✨ Features
 
-A few resources to get you started if this is your first Flutter project:
+- **Interactive Map**: Discover and pin stores using OpenStreetMap (via `flutter_map`).
+- **Real-time Location**: Snap to your current position and find stores nearby.
+- **Store Management**: Add new stores with custom categories, emojis, and exact map coordinates.
+- **Smart Shopping Lists**: Create and manage lists for specific stores with progress tracking.
+- **Privacy Focused**: No Google Cloud/Firebase tracking. Uses local-first principles.
+- **Modern UI**: White-themed glassmorphism, smooth animations, and responsive layout.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 🚀 Tech Stack
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Framework**: [Flutter](https://flutter.dev)
+- **State Management**: [Riverpod](https://riverpod.dev) (Functional providers)
+- **Mapping**: [flutter_map](https://pub.dev/packages/flutter_map) (OpenStreetMap)
+- **Local Database**: [Isar](https://isar.dev) / [Shared Preferences]
+- **Animations**: [flutter_animate](https://pub.dev/packages/flutter_animate)
+- **Geolocation**: [geolocator](https://pub.dev/packages/geolocator)
+
+## 📸 Screenshots
+
+| Map View | Home Screen | Add Store |
+|---|---|---|
+| ![Map](https://via.placeholder.com/200x400?text=Map+View) | ![Home](https://via.placeholder.com/200x400?text=Home+Screen) | ![Add](https://via.placeholder.com/200x400?text=Add+Store) |
+
+## 🛠️ Installation & Setup
+
+1. **Clone the repository**:
+   
