@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "970228567375",
+    "project_id": "nearcart-eaffb",
+    "storage_bucket": "nearcart-eaffb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:970228567375:android:c779ce7db977544a32493a",
+        "android_client_info": {
+          "package_name": "com.example.nearcart.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKBl-e6tPm7oG-t97Ebt4biq6FU15P4cQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
