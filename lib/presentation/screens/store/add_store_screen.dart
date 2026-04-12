@@ -60,18 +60,21 @@ class _AddStoreScreenState extends ConsumerState<AddStoreScreen> {
 
     setState(() => _isSaving = true);
 
-    final store = createStore(
-      uuid: const Uuid().v4(),
-      name: _nameCtrl.text.trim(),
-      category: _category,
-      latitude: _pickedLocation!.latitude,
-      longitude: _pickedLocation!.longitude,
-      address: _addressCtrl.text.trim().isEmpty
+    final store = StoreModel()
+      ..uuid = const Uuid().v4()
+      ..name = _nameCtrl.text.trim()
+      ..category = _category
+      ..latitude = _pickedLocation!.latitude
+      ..longitude = _pickedLocation!.longitude
+      ..address = _addressCtrl.text.trim().isEmpty
           ? 'No address provided'
-          : _addressCtrl.text.trim(),
-      phoneNumber: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-      iconEmoji: _emoji,
-    );
+          : _addressCtrl.text.trim()
+      ..phoneNumber =
+      _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim()
+      ..iconEmoji = _emoji
+      ..markerColor = '#4ECDC4'
+      ..createdAt = DateTime.now()
+      ..updatedAt = DateTime.now();
 
     await ref.read(storeRepositoryProvider).addStore(store);
     if (mounted) Navigator.pop(context);

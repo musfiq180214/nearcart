@@ -62,6 +62,7 @@ dependencies:
   isar_generator: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
   latlong2: ^0.9.1
+  cloud_firestore: ^6.2.0
 
 dev_dependencies:
   flutter_test:

@@ -1,100 +1,82 @@
-import 'package:isar/isar.dart';
+import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/services/firestore_services.dart';
 import '../models/store_model.dart';
-import 'isar_service.dart';
 
 class StoreRepository {
-  final IsarService _isarService;
+  final FirestoreService _firestore;
 
-  StoreRepository(this._isarService);
+  StoreRepository(this._firestore);
 
-  Isar get _db => _isarService.db;
-
-  // ── CREATE ──────────────────────────────────────────────────────────────
-  Future<StoreModel> addStore(StoreModel store) async {
-    await _db.writeTxn(() async {
-      await _db.storeModels.put(store);
-    });
-    return store;
+  // ✅ CREATE STORE
+  Future<void> addStore(StoreModel store) async {
+    await _firestore.stores.doc(store.uuid).set(store.toJson());
   }
 
-  // ── READ ─────────────────────────────────────────────────────────────────
-  Future<List<StoreModel>> getAllStores() async {
-    return _db.storeModels.where().sortByName().findAll();
-  }
-
-  Future<StoreModel?> getStoreByUuid(String uuid) async {
-    return _db.storeModels.filter().uuidEqualTo(uuid).findFirst();
-  }
-
-  Future<List<StoreModel>> getStoresByCategory(String category) async {
-    return _db.storeModels.filter().categoryEqualTo(category).findAll();
-  }
-
+  // ✅ REALTIME STREAM (used in your map)
   Stream<List<StoreModel>> watchAllStores() {
-    return _db.storeModels.where().watch(fireImmediately: true);
-  }
-
-  // ── UPDATE ───────────────────────────────────────────────────────────────
-  Future<StoreModel> updateStore(StoreModel store) async {
-    store.updatedAt = DateTime.now();
-    await _db.writeTxn(() async {
-      await _db.storeModels.put(store);
-    });
-    return store;
-  }
-
-  // ── DELETE ───────────────────────────────────────────────────────────────
-  Future<void> deleteStore(int id) async {
-    await _db.writeTxn(() async {
-      await _db.storeModels.delete(id);
+    return _firestore.stores.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) =>
+          StoreModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
     });
   }
 
-  Future<void> deleteStoreByUuid(String uuid) async {
-    final store = await getStoreByUuid(uuid);
-    if (store != null) await deleteStore(store.id);
+  // ✅ CATEGORY FILTER
+  Future<List<StoreModel>> getStoresByCategory(String category) async {
+    final res = await _firestore.stores
+        .where('category', isEqualTo: category)
+        .get();
+
+    return res.docs
+        .map((doc) =>
+        StoreModel.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
   }
 
-  // ── NEARBY ───────────────────────────────────────────────────────────────
-  /// Returns stores within [radiusKm] kilometers of [lat],[lng]
+  // ✅ NEARBY STORES (basic version)
   Future<List<StoreModel>> getStoresNearby({
     required double lat,
     required double lng,
-    double radiusKm = 2.0,
+    required double radiusKm,
   }) async {
-    final all = await getAllStores();
-    return all.where((s) {
-      final dist = _haversineKm(lat, lng, s.latitude, s.longitude);
-      return dist <= radiusKm;
-    }).toList()
-      ..sort((a, b) {
-        final da = _haversineKm(lat, lng, a.latitude, a.longitude);
-        final db = _haversineKm(lat, lng, b.latitude, b.longitude);
-        return da.compareTo(db);
-      });
+    final res = await _firestore.stores.get();
+
+    final allStores = res.docs
+        .map((doc) =>
+        StoreModel.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
+
+    // simple distance filter
+    return allStores.where((store) {
+      final distance = _calculateDistance(
+        lat,
+        lng,
+        store.latitude,
+        store.longitude,
+      );
+      return distance <= radiusKm;
+    }).toList();
   }
 
-  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
-    const r = 6371.0;
-    final dLat = _rad(lat2 - lat1);
-    final dLon = _rad(lon2 - lon1);
-    final a = _sin2(dLat / 2) +
-        _cos(_rad(lat1)) * _cos(_rad(lat2)) * _sin2(dLon / 2);
-    final c = 2 * _asin(_sqrt(a));
-    return r * c;
+  // ✅ HAVERSINE
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371; // km
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+
+    final a =
+        (sin(dLat / 2) * sin(dLat / 2)) +
+            cos(_deg2rad(lat1)) *
+                cos(_deg2rad(lat2)) *
+                (sin(dLon / 2) * sin(dLon / 2));
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
   }
 
-  double _rad(double deg) => deg * 3.14159265358979 / 180;
-  double _sin2(double x) => _sin(x) * _sin(x);
-  double _sin(double x) => x - x * x * x / 6 + x * x * x * x * x / 120;
-  double _cos(double x) => 1 - x * x / 2 + x * x * x * x / 24;
-  double _asin(double x) => x + x * x * x / 6;
-  double _sqrt(double x) {
-    if (x <= 0) return 0;
-    double guess = x / 2;
-    for (int i = 0; i < 20; i++) {
-      guess = (guess + x / guess) / 2;
-    }
-    return guess;
-  }
+  double _deg2rad(double deg) => deg * (pi / 180);
 }

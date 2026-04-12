@@ -4,17 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'data/repositories/isar_service.dart';
 import 'presentation/app_shell.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> NearCartAppMain() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait
+  // ✅ ADD THIS
+  await Firebase.initializeApp();
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Transparent status bar
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -23,7 +25,6 @@ Future<void> NearCartAppMain() async {
     ),
   );
 
-  // Initialize Isar
   await IsarService.instance.init();
 
   runApp(
@@ -32,7 +33,6 @@ Future<void> NearCartAppMain() async {
     ),
   );
 }
-
 class NearCartApp extends StatelessWidget {
   const NearCartApp({super.key});
 

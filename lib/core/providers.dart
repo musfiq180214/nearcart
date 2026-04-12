@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nearcart/core/services/firestore_services.dart';
 import '../data/repositories/isar_service.dart';
 import '../data/repositories/store_repository.dart';
 import '../data/repositories/shopping_list_repository.dart';
@@ -11,10 +12,13 @@ final isarServiceProvider = Provider<IsarService>((ref) {
   return IsarService.instance;
 });
 
-final storeRepositoryProvider = Provider<StoreRepository>((ref) {
-  return StoreRepository(ref.read(isarServiceProvider));
+final firestoreServiceProvider = Provider<FirestoreService>((ref) {
+  return FirestoreService();
 });
 
+final storeRepositoryProvider = Provider<StoreRepository>((ref) {
+  return StoreRepository(ref.read(firestoreServiceProvider));
+});
 final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
   return ShoppingListRepository(ref.read(isarServiceProvider));
 });
