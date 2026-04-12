@@ -4,4 +4,6 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   CollectionReference get stores => _db.collection('stores');
+  CollectionReference get shoppingLists =>
+      _db.collection('shopping_lists');
 }

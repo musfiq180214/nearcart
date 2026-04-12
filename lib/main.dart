@@ -25,7 +25,7 @@ Future<void> NearCartAppMain() async {
     ),
   );
 
-  await IsarService.instance.init();
+  //await IsarService.instance.init();
 
   runApp(
     const ProviderScope(

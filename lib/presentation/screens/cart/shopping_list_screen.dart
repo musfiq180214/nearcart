@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers.dart';
 import '../../../data/models/shopping_list_model.dart';
+import '../../../data/providers/shopping_list_repo_provider.dart';
 import '../../widgets/glassmorphic/glass_card.dart';
 import '../../widgets/cart/cart_item_tile.dart';
 
@@ -197,17 +198,15 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                     onTap: () async {
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty) return;
-                      final item = createCartItem(
+                      final item = CartItemModel(
                         uuid: const Uuid().v4(),
                         name: name,
                         quantity: int.tryParse(qtyCtrl.text) ?? 1,
-                        unit: unitCtrl.text.trim().isEmpty
-                            ? null
-                            : unitCtrl.text.trim(),
-                        estimatedPrice:
-                            double.tryParse(priceCtrl.text),
+                        unit: unitCtrl.text.trim().isEmpty ? null : unitCtrl.text.trim(),
+                        estimatedPrice: double.tryParse(priceCtrl.text),
                         category: selectedCat,
                         iconEmoji: selectedEmoji,
+                        isChecked: false,
                       );
                       Navigator.pop(ctx);
                       if (_list != null) {

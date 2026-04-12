@@ -6,7 +6,7 @@ import '../../../data/models/shopping_list_model.dart';
 import '../glassmorphic/glass_card.dart';
 
 class CartItemTile extends StatelessWidget {
-  final CartItemEmbedded item;
+  final CartItemModel item;
   final VoidCallback onToggle;
   final VoidCallback? onDelete;
   final int animIndex;

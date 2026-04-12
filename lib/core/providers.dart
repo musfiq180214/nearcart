@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nearcart/core/services/firestore_services.dart';
+import 'package:nearcart/data/repositories/shopping_list_firestore_repo.dart';
+import '../data/providers/shopping_list_repo_provider.dart';
 import '../data/repositories/isar_service.dart';
 import '../data/repositories/store_repository.dart';
 import '../data/repositories/shopping_list_repository.dart';
@@ -8,9 +10,7 @@ import '../data/models/shopping_list_model.dart';
 
 // ── SERVICE PROVIDERS ────────────────────────────────────────────────────────
 
-final isarServiceProvider = Provider<IsarService>((ref) {
-  return IsarService.instance;
-});
+
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
@@ -19,9 +19,7 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
 final storeRepositoryProvider = Provider<StoreRepository>((ref) {
   return StoreRepository(ref.read(firestoreServiceProvider));
 });
-final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
-  return ShoppingListRepository(ref.read(isarServiceProvider));
-});
+
 
 // ── STORE PROVIDERS ──────────────────────────────────────────────────────────
 
@@ -46,28 +44,7 @@ final nearbyStoresProvider = FutureProvider.family<List<StoreModel>,
   );
 });
 
-// ── SHOPPING LIST PROVIDERS ──────────────────────────────────────────────────
 
-final allListsProvider = StreamProvider<List<ShoppingListModel>>((ref) {
-  final repo = ref.watch(shoppingListRepositoryProvider);
-  return repo.watchAllLists();
-});
-
-final activeListsProvider = FutureProvider<List<ShoppingListModel>>((ref) {
-  final repo = ref.watch(shoppingListRepositoryProvider);
-  return repo.getActiveLists();
-});
-
-final listsForStoreProvider =
-    StreamProvider.family<List<ShoppingListModel>, String>((ref, storeUuid) {
-  final repo = ref.watch(shoppingListRepositoryProvider);
-  return repo.watchListsForStore(storeUuid);
-});
-
-final statsProvider = FutureProvider<Map<String, dynamic>>((ref) {
-  final repo = ref.watch(shoppingListRepositoryProvider);
-  return repo.getStats();
-});
 
 // ── LOCATION STATE ───────────────────────────────────────────────────────────
 
@@ -128,3 +105,14 @@ final selectedStoreProvider = StateProvider<StoreModel?>((ref) => null);
 // ── MAP FILTER ────────────────────────────────────────────────────────────────
 
 final mapCategoryFilterProvider = StateProvider<String?>((ref) => null);
+
+
+final allListsProvider = StreamProvider<List<ShoppingListModel>>((ref) {
+  final repo = ref.read(shoppingListRepositoryProvider);
+  return repo.watchAllLists();
+});
+
+final statsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final repo = ref.read(shoppingListRepositoryProvider);
+  return repo.getStats();
+});

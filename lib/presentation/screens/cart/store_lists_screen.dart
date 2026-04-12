@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers.dart';
 import '../../../data/models/store_model.dart';
 import '../../../data/models/shopping_list_model.dart';
+import '../../../data/providers/shopping_list_repo_provider.dart';
 import '../../widgets/glassmorphic/glass_card.dart';
 import '../cart/shopping_list_screen.dart';
 
@@ -95,13 +96,16 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
-      final list = createShoppingList(
+      final repo = ref.read(shoppingListRepositoryProvider);
+
+      final list = repo.createShoppingList(
         uuid: const Uuid().v4(),
         name: result,
         storeUuid: widget.store.uuid,
         storeName: widget.store.name,
       );
-      await ref.read(shoppingListRepositoryProvider).createList(list);
+
+      await repo.createList(list);
     }
   }
 
