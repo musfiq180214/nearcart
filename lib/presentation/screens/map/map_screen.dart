@@ -338,58 +338,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Store Panel
           if (_showStorePanel && _selectedStoreUuid != null)
             Positioned(
-              bottom: 90,
-              left: 0,
-              right: 0,
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Store Details", style: TextStyle(fontWeight: FontWeight.bold)),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => setState(() => _showStorePanel = false),
-                        )
-                      ],
-                    ),
-                    // Store Panel
-                    if (_showStorePanel && _selectedStoreUuid != null)
-                      Positioned(
-                        bottom: 100, // Adjusted to sit above the Bottom Nav Bar
-                        left: 16,
-                        right: 16,
-                        child: allStoresAsync.maybeWhen(
-                          data: (stores) {
-                            // Find the specific store data
-                            final store = stores.firstWhere(
-                                  (s) => s.uuid == _selectedStoreUuid,
-                              orElse: () => stores.first,
-                            );
+              bottom: 100, // Adjusted to sit above the Bottom Nav Bar
+              left: 16,
+              right: 16,
+              child: allStoresAsync.maybeWhen(
+                data: (stores) {
+                  // Find the specific store data
+                  final store = stores.firstWhere(
+                        (s) => s.uuid == _selectedStoreUuid,
+                    orElse: () => stores.first,
+                  );
 
-                            return _StoreDetailPanel(
-                              storeUuid: store.uuid,
-                              stores: stores,
-                              currentUid: currentUid,
-                              onClose: () => setState(() => _showStorePanel = false),
-                            ).animate().slideY(begin: 1, end: 0, curve: Curves.easeOutCubic);
-                          },
-                          orElse: () => const SizedBox.shrink(),
-                        ),
-                      ),
-                  ],
-                ),
-              ).animate().slideY(begin: 1, end: 0),
-            )
+                  return _StoreDetailPanel(
+                    storeUuid: store.uuid,
+                    stores: stores,
+                    currentUid: currentUid,
+                    onClose: () => setState(() => _showStorePanel = false),
+                  ).animate().slideY(begin: 1, end: 0, curve: Curves.easeOutCubic);
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ),
         ],
       ),
     );
