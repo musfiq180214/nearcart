@@ -127,6 +127,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final allStoresAsync = ref.watch(allStoresProvider);
@@ -295,6 +297,42 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ],
             ),
+          ),
+
+          // My Location Button
+          Positioned(
+            bottom: 130,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: "my_location_btn",
+              backgroundColor: Colors.white,
+              elevation: 6,
+              onPressed: () async {
+                try {
+                  final pos = await Geolocator.getCurrentPosition(
+                    desiredAccuracy: LocationAccuracy.high,
+                  );
+
+                  // Update provider (optional but good)
+                  ref.read(locationProvider.notifier)
+                      .setLocation(pos.latitude, pos.longitude);
+
+                  // Move map
+                  if (_isMapReady) {
+                    _mapController.move(
+                      LatLng(pos.latitude, pos.longitude),
+                      15.0,
+                    );
+                  }
+                } catch (e) {
+                  AppLogger.e("Error getting current location: $e");
+                }
+              },
+              child: const Icon(
+                Icons.my_location,
+                color: Colors.blueAccent,
+              ),
+            ).animate().fadeIn().scale(),
           ),
 
           // Store Panel
@@ -588,6 +626,7 @@ class _StoreDetailPanel extends ConsumerWidget {
                         Expanded(
                           child: Text(store.name,
                               style: const TextStyle(
+                                color: Colors.black,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold)),
                         ),
@@ -602,7 +641,7 @@ class _StoreDetailPanel extends ConsumerWidget {
                               border: Border.all(
                                   color: AppColors.primary.withOpacity(0.3)),
                             ),
-                            child: Text(
+                            child: const Text(
                               '⭐ My Store',
                               style: TextStyle(
                                   color: AppColors.primary,
