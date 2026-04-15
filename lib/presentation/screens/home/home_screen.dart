@@ -133,9 +133,9 @@ class HomeScreen extends ConsumerWidget {
                 final active =
                 lists.where((l) => !l.isCompleted).toList();
                 if (active.isEmpty) {
-                  return SliverToBoxAdapter(
+                  return const SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: AppSpacing.md),
                       child: _EmptyStateCard(
                         icon: '📋',
@@ -190,9 +190,9 @@ class HomeScreen extends ConsumerWidget {
                   child: Center(child: Text('Error: $e'))),
               data: (stores) {
                 if (stores.isEmpty) {
-                  return SliverToBoxAdapter(
+                  return const SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: AppSpacing.md),
                       child: _EmptyStateCard(
                         icon: '📍',
