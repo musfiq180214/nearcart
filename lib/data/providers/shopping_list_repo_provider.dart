@@ -18,5 +18,12 @@ Provider<ShoppingListFirestoreRepository>((ref) {
 final listsForStoreProvider =
 StreamProvider.family<List<ShoppingListModel>, String>((ref, storeUuid) {
   final repo = ref.read(shoppingListRepositoryProvider);
-  return repo.watchListsForStore(storeUuid);
+
+  final userId = ref.read(authRepositoryProvider).currentUser?.uid;
+
+  if (userId == null) {
+    return const Stream.empty();
+  }
+
+  return repo.watchListsForStore(storeUuid, userId);
 });

@@ -1,52 +1,163 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nearcart/core/services/firestore_services.dart';
-import 'package:nearcart/data/repositories/shopping_list_firestore_repo.dart';
-import '../data/providers/shopping_list_repo_provider.dart';
-import '../data/repositories/isar_service.dart';
-import '../data/repositories/store_repository.dart';
-import '../data/repositories/shopping_list_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+import '../auth_repo.dart';
 import '../data/models/store_model.dart';
 import '../data/models/shopping_list_model.dart';
 
-// ── SERVICE PROVIDERS ────────────────────────────────────────────────────────
+import '../data/models/user_model.dart';
+import '../data/repositories/store_repository.dart';
+import '../data/repositories/shopping_list_firestore_repo.dart';
 
+// ── Infrastructure ────────────────────────────────────────────────────────────
 
+final authRepositoryProvider = Provider<AuthRepository>((_) => AuthRepository());
 
-final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService();
+final storeRepositoryProvider =
+Provider<StoreRepository>((_) => StoreRepository());
+
+final shoppingListRepositoryProvider =
+Provider<ShoppingListFirestoreRepository>(
+        (_) => ShoppingListFirestoreRepository());
+
+final firestoreProvider =
+Provider<FirebaseFirestore>((_) => FirebaseFirestore.instance);
+
+// ── Auth State ────────────────────────────────────────────────────────────────
+
+/// Raw Firebase auth stream
+// lib/core/providers.dart
+
+// Change this:
+// lib/core/providers.dart
+
+// Use the repository you already defined at the top of the file
+final firebaseAuthUserProvider = StreamProvider<User?>((ref) {
+  final repo = ref.watch(authRepositoryProvider);
+  return repo.authStateChanges; // Access the stream from your repo
+});
+/// Whether a user is currently signed in
+final isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(firebaseAuthUserProvider).value != null;
 });
 
-final storeRepositoryProvider = Provider<StoreRepository>((ref) {
-  return StoreRepository(ref.read(firestoreServiceProvider));
+/// Current Firebase UID (null when signed out)
+final currentUidProvider = Provider<String?>((ref) {
+  return ref.watch(firebaseAuthUserProvider).value?.uid;
 });
 
+// ── Auth Notifier ─────────────────────────────────────────────────────────────
 
-// ── STORE PROVIDERS ──────────────────────────────────────────────────────────
+enum AuthStatus { idle, loading, success, error }
 
-final allStoresProvider = StreamProvider<List<StoreModel>>((ref) {
-  final repo = ref.watch(storeRepositoryProvider);
-  return repo.watchAllStores();
+class AuthState {
+  final AuthStatus status;
+  final UserModel? user;
+  final String? errorMessage;
+
+  const AuthState({
+    this.status = AuthStatus.idle,
+    this.user,
+    this.errorMessage,
+  });
+
+  AuthState copyWith({
+    AuthStatus? status,
+    UserModel? user,
+    String? errorMessage,
+  }) =>
+      AuthState(
+        status: status ?? this.status,
+        user: user ?? this.user,
+        errorMessage: errorMessage ?? this.errorMessage,
+      );
+}
+
+class AuthNotifier extends StateNotifier<AuthState> {
+  final AuthRepository _repo;
+
+  AuthNotifier(this._repo) : super(const AuthState());
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final user = await _repo.register(name: name, email: email, password: password);
+      state = state.copyWith(status: AuthStatus.success, user: user);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _friendlyError(e.code),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> login({
+    required String email,
+    required String password,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final user = await _repo.login(email: email, password: password);
+      state = state.copyWith(status: AuthStatus.success, user: user);
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _friendlyError(e.code),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> signOut() async {
+    await _repo.signOut();
+    state = const AuthState();
+  }
+
+  void clearError() {
+    state = state.copyWith(status: AuthStatus.idle, errorMessage: null);
+  }
+
+  String _friendlyError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      default:
+        return 'Something went wrong. Please try again.';
+    }
+  }
+}
+
+final authNotifierProvider =
+StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier(ref.read(authRepositoryProvider));
 });
 
-final storesByCategoryProvider =
-    FutureProvider.family<List<StoreModel>, String>((ref, category) {
-  final repo = ref.watch(storeRepositoryProvider);
-  return repo.getStoresByCategory(category);
-});
-
-final nearbyStoresProvider = FutureProvider.family<List<StoreModel>,
-    ({double lat, double lng, double radius})>((ref, params) {
-  final repo = ref.watch(storeRepositoryProvider);
-  return repo.getStoresNearby(
-    lat: params.lat,
-    lng: params.lng,
-    radiusKm: params.radius,
-  );
-});
-
-
-
-// ── LOCATION STATE ───────────────────────────────────────────────────────────
+// ── Location ──────────────────────────────────────────────────────────────────
 
 class LocationState {
   final double? lat;
@@ -54,25 +165,7 @@ class LocationState {
   final bool isLoading;
   final String? error;
 
-  const LocationState({
-    this.lat,
-    this.lng,
-    this.isLoading = false,
-    this.error,
-  });
-
-  LocationState copyWith({
-    double? lat,
-    double? lng,
-    bool? isLoading,
-    String? error,
-  }) =>
-      LocationState(
-        lat: lat ?? this.lat,
-        lng: lng ?? this.lng,
-        isLoading: isLoading ?? this.isLoading,
-        error: error ?? this.error,
-      );
+  const LocationState({this.lat, this.lng, this.isLoading = false, this.error});
 
   bool get hasLocation => lat != null && lng != null;
 }
@@ -80,39 +173,55 @@ class LocationState {
 class LocationNotifier extends StateNotifier<LocationState> {
   LocationNotifier() : super(const LocationState());
 
-  void setLocation(double lat, double lng) {
-    state = state.copyWith(lat: lat, lng: lng, isLoading: false, error: null);
-  }
-
-  void setLoading() {
-    state = state.copyWith(isLoading: true, error: null);
-  }
-
-  void setError(String error) {
-    state = state.copyWith(isLoading: false, error: error);
-  }
+  void setLoading() => state = const LocationState(isLoading: true);
+  void setLocation(double lat, double lng) =>
+      state = LocationState(lat: lat, lng: lng);
+  void setError(String err) => state = LocationState(error: err);
 }
 
 final locationProvider =
-    StateNotifierProvider<LocationNotifier, LocationState>(
-  (ref) => LocationNotifier(),
-);
+StateNotifierProvider<LocationNotifier, LocationState>(
+        (_) => LocationNotifier());
 
-// ── SELECTED STORE ────────────────────────────────────────────────────────────
+// ── Stores ────────────────────────────────────────────────────────────────────
 
-final selectedStoreProvider = StateProvider<StoreModel?>((ref) => null);
-
-// ── MAP FILTER ────────────────────────────────────────────────────────────────
-
-final mapCategoryFilterProvider = StateProvider<String?>((ref) => null);
-
-
-final allListsProvider = StreamProvider<List<ShoppingListModel>>((ref) {
-  final repo = ref.read(shoppingListRepositoryProvider);
-  return repo.watchAllLists();
+/// All stores in the app (map view)
+final allStoresProvider = StreamProvider<List<StoreModel>>((ref) {
+  return ref.read(storeRepositoryProvider).watchAllStores();
 });
 
+/// Only the current user's stores (home screen + add/delete)
+final myStoresProvider = StreamProvider<List<StoreModel>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value([]);
+  return ref.read(storeRepositoryProvider).watchMyStores(uid);
+});
+
+// ── Shopping Lists ────────────────────────────────────────────────────────────
+
+/// All lists for the current user
+final allListsProvider = StreamProvider<List<ShoppingListModel>>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value([]);
+  return ref.read(shoppingListRepositoryProvider).watchMyLists(uid);
+});
+
+/// Lists for a specific store, scoped to current user
+final listsForStoreProvider =
+StreamProvider.family<List<ShoppingListModel>, String>((ref, storeUuid) {
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return Stream.value([]);
+  return ref
+      .read(shoppingListRepositoryProvider)
+      .watchListsForStore(storeUuid, uid);
+});
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+
 final statsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  final repo = ref.read(shoppingListRepositoryProvider);
-  return repo.getStats();
+  final uid = ref.watch(currentUidProvider);
+  if (uid == null) return {'totalLists': 0, 'activeLists': 0, 'completedLists': 0};
+  // Re-fetch whenever lists change
+  ref.watch(allListsProvider);
+  return ref.read(shoppingListRepositoryProvider).getStats(uid);
 });

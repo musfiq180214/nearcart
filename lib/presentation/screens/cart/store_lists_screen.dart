@@ -6,9 +6,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers.dart';
 import '../../../data/models/store_model.dart';
 import '../../../data/models/shopping_list_model.dart';
-import '../../../data/providers/shopping_list_repo_provider.dart';
+import '../../../data/repositories/shopping_list_firestore_repo.dart';
 import '../../widgets/glassmorphic/glass_card.dart';
-import '../cart/shopping_list_screen.dart';
+import 'shopping_list_screen.dart';
 
 class StoreListsScreen extends ConsumerStatefulWidget {
   final StoreModel store;
@@ -40,8 +40,7 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                 autofocus: true,
                 style: AppTextStyles.bodyLarge,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. Weekly Groceries',
-                ),
+                    hintText: 'e.g. Weekly Groceries'),
               ),
               const SizedBox(height: AppSpacing.lg),
               Row(
@@ -51,11 +50,11 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                       onTap: () => Navigator.pop(ctx),
                       child: Container(
                         padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: AppColors.glassWhite,
                           borderRadius:
-                              BorderRadius.circular(AppRadius.md),
+                          BorderRadius.circular(AppRadius.md),
                         ),
                         child: const Center(
                             child: Text('Cancel',
@@ -70,12 +69,12 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                           Navigator.pop(ctx, nameCtrl.text.trim()),
                       child: Container(
                         padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                               colors: AppColors.primaryGradient),
                           borderRadius:
-                              BorderRadius.circular(AppRadius.md),
+                          BorderRadius.circular(AppRadius.md),
                         ),
                         child: Center(
                           child: Text(
@@ -96,22 +95,26 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
-      final repo = ref.read(shoppingListRepositoryProvider);
+      // Grab the current userId — required for user-scoped lists
+      final uid = ref.read(currentUidProvider);
+      if (uid == null) return;
 
+      final repo = ref.read(shoppingListRepositoryProvider);
       final list = repo.createShoppingList(
         uuid: const Uuid().v4(),
+        userId: uid, // ← pass userId
         name: result,
         storeUuid: widget.store.uuid,
         storeName: widget.store.name,
       );
-
       await repo.createList(list);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final listsAsync = ref.watch(listsForStoreProvider(widget.store.uuid));
+    final listsAsync =
+    ref.watch(listsForStoreProvider(widget.store.uuid));
 
     return Scaffold(
       body: Container(
@@ -126,7 +129,7 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // ── Header ───────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
@@ -143,10 +146,8 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            widget.store.name,
-                            style: AppTextStyles.displayMedium,
-                          ),
+                          Text(widget.store.name,
+                              style: AppTextStyles.displayMedium),
                           Text(
                             '${widget.store.iconEmoji ?? '🏬'} ${widget.store.category}',
                             style: AppTextStyles.bodyMedium,
@@ -173,13 +174,14 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                 ),
               ),
 
-              // Lists
+              // ── Lists ────────────────────────────────────────────────
               Expanded(
                 child: listsAsync.when(
                   loading: () => const Center(
                       child: CircularProgressIndicator(
                           color: AppColors.primary)),
-                  error: (e, _) => Center(child: Text('Error: $e')),
+                  error: (e, _) =>
+                      Center(child: Text('Error: $e')),
                   data: (lists) {
                     if (lists.isEmpty) {
                       return Center(
@@ -206,7 +208,7 @@ class _StoreListsScreenState extends ConsumerState<StoreListsScreen> {
                       padding: const EdgeInsets.all(AppSpacing.md),
                       itemCount: lists.length,
                       separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (_, i) =>
                           _ListCard(list: lists[i], index: i),
                     );
@@ -265,15 +267,14 @@ class _ListCard extends ConsumerWidget {
                       horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.success.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    borderRadius:
+                    BorderRadius.circular(AppRadius.full),
                     border: Border.all(
                         color: AppColors.success.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    '✓ Done',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.success),
-                  ),
+                  child: Text('✓ Done',
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.success)),
                 )
               else
                 const Icon(Icons.chevron_right_rounded,
@@ -288,7 +289,9 @@ class _ListCard extends ConsumerWidget {
                 value: progress,
                 backgroundColor: AppColors.glassWhite,
                 valueColor: AlwaysStoppedAnimation(
-                  list.isCompleted ? AppColors.success : AppColors.primary,
+                  list.isCompleted
+                      ? AppColors.success
+                      : AppColors.primary,
                 ),
                 minHeight: 4,
               ),

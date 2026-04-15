@@ -9,5 +9,5 @@ void main() async {
     baseUrl: "",
     appTitle: 'Smart Expense Tracker App',
   );
-  await NearCartAppMain();
+  await NearCartApp();
 }

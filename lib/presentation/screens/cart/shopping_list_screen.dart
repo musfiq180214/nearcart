@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers.dart';
 import '../../../data/models/shopping_list_model.dart';
-import '../../../data/providers/shopping_list_repo_provider.dart';
 import '../../widgets/glassmorphic/glass_card.dart';
 import '../../widgets/cart/cart_item_tile.dart';
 
@@ -31,10 +30,12 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     final list = await ref
         .read(shoppingListRepositoryProvider)
         .getListByUuid(widget.listUuid);
-    setState(() {
-      _list = list;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _list = list;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _toggleItem(String itemUuid) async {
@@ -42,7 +43,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     final updated = await ref
         .read(shoppingListRepositoryProvider)
         .toggleItemChecked(_list!, itemUuid);
-    setState(() => _list = updated);
+    if (mounted) setState(() => _list = updated);
   }
 
   Future<void> _removeItem(String itemUuid) async {
@@ -50,7 +51,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     final updated = await ref
         .read(shoppingListRepositoryProvider)
         .removeItemFromList(_list!, itemUuid);
-    setState(() => _list = updated);
+    if (mounted) setState(() => _list = updated);
   }
 
   Future<void> _addItem() async {
@@ -61,8 +62,14 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     String selectedEmoji = '🛒';
     String selectedCat = 'General';
 
-    final emojis = ['🛒', '🥦', '🥛', '🍎', '🍗', '🧴', '🍞', '🧃', '🥚', '🧀'];
-    final cats = ['General', 'Produce', 'Dairy', 'Meat', 'Bakery', 'Drinks', 'Snacks', 'Hygiene'];
+    final emojis = [
+      '🛒', '🥦', '🥛', '🍎', '🍗', '🧴', '🍞', '🧃', '🥚', '🧀',
+      '🧅', '🫙', '🥩', '🍌', '🫐', '🌽', '🧈', '🥫', '☕', '🧹',
+    ];
+    final cats = [
+      'General', 'Produce', 'Dairy', 'Meat',
+      'Bakery', 'Drinks', 'Snacks', 'Hygiene',
+    ];
 
     await showModalBottomSheet(
       context: context,
@@ -78,16 +85,18 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Title ──────────────────────────────────────────────
                 Text('Add Item', style: AppTextStyles.headingLarge),
                 const SizedBox(height: AppSpacing.md),
 
-                // Emoji picker
+                // ── Emoji picker ───────────────────────────────────────
                 SizedBox(
                   height: 44,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: emojis.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, __) =>
+                    const SizedBox(width: 8),
                     itemBuilder: (_, i) => GestureDetector(
                       onTap: () =>
                           setBS(() => selectedEmoji = emojis[i]),
@@ -99,7 +108,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                               ? AppColors.primary.withOpacity(0.2)
                               : AppColors.glassWhite,
                           borderRadius:
-                              BorderRadius.circular(AppRadius.md),
+                          BorderRadius.circular(AppRadius.md),
                           border: Border.all(
                             color: selectedEmoji == emojis[i]
                                 ? AppColors.primary
@@ -107,22 +116,26 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                           ),
                         ),
                         child: Center(
-                            child: Text(emojis[i],
-                                style: const TextStyle(fontSize: 20))),
+                          child: Text(emojis[i],
+                              style: const TextStyle(fontSize: 20)),
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
 
+                // ── Item name ──────────────────────────────────────────
                 TextField(
                   controller: nameCtrl,
                   autofocus: true,
                   style: AppTextStyles.bodyLarge,
-                  decoration: const InputDecoration(hintText: 'Item name'),
+                  decoration:
+                  const InputDecoration(hintText: 'Item name'),
                 ),
                 const SizedBox(height: AppSpacing.sm),
 
+                // ── Qty / Unit / Price ─────────────────────────────────
                 Row(
                   children: [
                     Expanded(
@@ -131,7 +144,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         keyboardType: TextInputType.number,
                         style: AppTextStyles.bodyLarge,
                         decoration:
-                            const InputDecoration(hintText: 'Qty'),
+                        const InputDecoration(hintText: 'Qty'),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -139,8 +152,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                       child: TextField(
                         controller: unitCtrl,
                         style: AppTextStyles.bodyLarge,
-                        decoration:
-                            const InputDecoration(hintText: 'Unit (kg, pcs…)'),
+                        decoration: const InputDecoration(
+                            hintText: 'Unit (kg, pcs…)'),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -150,48 +163,50 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         keyboardType: TextInputType.number,
                         style: AppTextStyles.bodyLarge,
                         decoration:
-                            const InputDecoration(hintText: '৳ Price'),
+                        const InputDecoration(hintText: '৳ Price'),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // Category chips
+                // ── Category chips ─────────────────────────────────────
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: cats
                       .map((c) => GestureDetector(
-                            onTap: () =>
-                                setBS(() => selectedCat = c),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: selectedCat == c
-                                    ? AppColors.primary.withOpacity(0.2)
-                                    : AppColors.glassWhite,
-                                borderRadius: BorderRadius.circular(
-                                    AppRadius.full),
-                                border: Border.all(
-                                  color: selectedCat == c
-                                      ? AppColors.primary
-                                      : AppColors.glassBorder,
-                                ),
-                              ),
-                              child: Text(c,
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: selectedCat == c
-                                        ? AppColors.primary
-                                        : AppColors.textSecondary,
-                                  )),
-                            ),
-                          ))
+                    onTap: () =>
+                        setBS(() => selectedCat = c),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: selectedCat == c
+                            ? AppColors.primary.withOpacity(0.2)
+                            : AppColors.glassWhite,
+                        borderRadius: BorderRadius.circular(
+                            AppRadius.full),
+                        border: Border.all(
+                          color: selectedCat == c
+                              ? AppColors.primary
+                              : AppColors.glassBorder,
+                        ),
+                      ),
+                      child: Text(c,
+                          style: AppTextStyles.bodySmall
+                              .copyWith(
+                            color: selectedCat == c
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          )),
+                    ),
+                  ))
                       .toList(),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
+                // ── Add button ─────────────────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   child: GestureDetector(
@@ -202,8 +217,11 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         uuid: const Uuid().v4(),
                         name: name,
                         quantity: int.tryParse(qtyCtrl.text) ?? 1,
-                        unit: unitCtrl.text.trim().isEmpty ? null : unitCtrl.text.trim(),
-                        estimatedPrice: double.tryParse(priceCtrl.text),
+                        unit: unitCtrl.text.trim().isEmpty
+                            ? null
+                            : unitCtrl.text.trim(),
+                        estimatedPrice:
+                        double.tryParse(priceCtrl.text),
                         category: selectedCat,
                         iconEmoji: selectedEmoji,
                         isChecked: false,
@@ -213,7 +231,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         final updated = await ref
                             .read(shoppingListRepositoryProvider)
                             .addItemToList(_list!, item);
-                        setState(() => _list = updated);
+                        if (mounted) setState(() => _list = updated);
                       }
                     },
                     child: Container(
@@ -222,12 +240,14 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         gradient: const LinearGradient(
                             colors: AppColors.primaryGradient),
                         borderRadius:
-                            BorderRadius.circular(AppRadius.md),
+                        BorderRadius.circular(AppRadius.md),
                       ),
                       child: Center(
-                        child: Text('Add to List',
-                            style: AppTextStyles.headingMedium
-                                .copyWith(color: AppColors.background)),
+                        child: Text(
+                          'Add to List',
+                          style: AppTextStyles.headingMedium
+                              .copyWith(color: AppColors.background),
+                        ),
                       ),
                     ),
                   ),
@@ -245,8 +265,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary)),
+        body:
+        Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
     if (_list == null) {
@@ -270,7 +290,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header
+              // ── Header ─────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
@@ -289,10 +309,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         children: [
                           Text(list.name,
                               style: AppTextStyles.displayMedium),
-                          Text(
-                            list.storeName,
-                            style: AppTextStyles.bodyMedium,
-                          ),
+                          Text(list.storeName,
+                              style: AppTextStyles.bodyMedium),
                         ],
                       ),
                     ),
@@ -300,10 +318,10 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                 ),
               ),
 
-              // Progress card
+              // ── Progress card ──────────────────────────────────────────
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md),
                 child: GlowGlassCard(
                   glowColor: list.isCompleted
                       ? AppColors.success
@@ -314,7 +332,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         children: [
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   '${list.checkedItems}/${list.totalItems} items',
@@ -340,7 +359,7 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                       const SizedBox(height: AppSpacing.md),
                       ClipRRect(
                         borderRadius:
-                            BorderRadius.circular(AppRadius.full),
+                        BorderRadius.circular(AppRadius.full),
                         child: LinearProgressIndicator(
                           value: list.progress,
                           backgroundColor: AppColors.glassWhite,
@@ -358,77 +377,75 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Items
+              // ── Items list ─────────────────────────────────────────────
               Expanded(
                 child: list.items.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('📋',
-                                style: TextStyle(fontSize: 56)),
-                            const SizedBox(height: AppSpacing.md),
-                            Text('List is empty',
-                                style: AppTextStyles.headingLarge),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              'Tap + to add your first item',
-                              style: AppTextStyles.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      )
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('📋',
+                          style: TextStyle(fontSize: 56)),
+                      const SizedBox(height: AppSpacing.md),
+                      Text('List is empty',
+                          style: AppTextStyles.headingLarge),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text('Tap + to add your first item',
+                          style: AppTextStyles.bodyMedium),
+                    ],
+                  ),
+                )
                     : ListView(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                        children: [
-                          if (unchecked.isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: AppSpacing.sm),
-                              child: Text('To Get',
-                                  style: AppTextStyles.labelMedium),
-                            ),
-                            ...unchecked.asMap().entries.map(
-                                  (e) => Padding(
-                                    padding: const EdgeInsets.only(
-                                        bottom: AppSpacing.sm),
-                                    child: CartItemTile(
-                                      item: e.value,
-                                      animIndex: e.key,
-                                      onToggle: () =>
-                                          _toggleItem(e.value.uuid),
-                                      onDelete: () =>
-                                          _removeItem(e.value.uuid),
-                                    ),
-                                  ),
-                                ),
-                          ],
-                          if (checked.isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: AppSpacing.sm),
-                              child: Text('In Cart',
-                                  style: AppTextStyles.labelMedium),
-                            ),
-                            ...checked.asMap().entries.map(
-                                  (e) => Padding(
-                                    padding: const EdgeInsets.only(
-                                        bottom: AppSpacing.sm),
-                                    child: CartItemTile(
-                                      item: e.value,
-                                      animIndex: e.key,
-                                      onToggle: () =>
-                                          _toggleItem(e.value.uuid),
-                                      onDelete: () =>
-                                          _removeItem(e.value.uuid),
-                                    ),
-                                  ),
-                                ),
-                          ],
-                          const SizedBox(height: 80),
-                        ],
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md),
+                  children: [
+                    if (unchecked.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.sm),
+                        child: Text('To Get',
+                            style: AppTextStyles.labelMedium),
                       ),
+                      ...unchecked.asMap().entries.map(
+                            (e) => Padding(
+                          padding: const EdgeInsets.only(
+                              bottom: AppSpacing.sm),
+                          child: CartItemTile(
+                            item: e.value,
+                            animIndex: e.key,
+                            onToggle: () =>
+                                _toggleItem(e.value.uuid),
+                            onDelete: () =>
+                                _removeItem(e.value.uuid),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (checked.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.sm),
+                        child: Text('In Cart',
+                            style: AppTextStyles.labelMedium),
+                      ),
+                      ...checked.asMap().entries.map(
+                            (e) => Padding(
+                          padding: const EdgeInsets.only(
+                              bottom: AppSpacing.sm),
+                          child: CartItemTile(
+                            item: e.value,
+                            animIndex: e.key,
+                            onToggle: () =>
+                                _toggleItem(e.value.uuid),
+                            onDelete: () =>
+                                _removeItem(e.value.uuid),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 80),
+                  ],
+                ),
               ),
             ],
           ),

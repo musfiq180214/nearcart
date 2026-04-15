@@ -1,82 +1,76 @@
 import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../core/services/firestore_services.dart';
 import '../models/store_model.dart';
 
 class StoreRepository {
-  final FirestoreService _firestore;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  StoreRepository(this._firestore);
+  CollectionReference get _col => _db.collection('stores');
 
-  // ✅ CREATE STORE
+  // ── Write ─────────────────────────────────────────────────────────────────
+
   Future<void> addStore(StoreModel store) async {
-    await _firestore.stores.doc(store.uuid).set(store.toJson());
+    await _col.doc(store.uuid).set(store.toJson());
   }
 
-  // ✅ REALTIME STREAM (used in your map)
+  Future<void> deleteStore(String uuid) async {
+    await _col.doc(uuid).delete();
+  }
+
+  // ── Streams ───────────────────────────────────────────────────────────────
+
+  /// All stores in the app (for map view showing everyone's stores)
   Stream<List<StoreModel>> watchAllStores() {
-    return _firestore.stores.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) =>
-          StoreModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
-    });
+    return _col.snapshots().map((snap) => snap.docs
+        .map((d) => StoreModel.fromJson(d.data() as Map<String, dynamic>))
+        .toList());
   }
 
-  // ✅ CATEGORY FILTER
-  Future<List<StoreModel>> getStoresByCategory(String category) async {
-    final res = await _firestore.stores
-        .where('category', isEqualTo: category)
-        .get();
+  /// Only stores belonging to the current user
+  Stream<List<StoreModel>> watchMyStores(String userId) {
+    return _col
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((d) => StoreModel.fromJson(d.data() as Map<String, dynamic>))
+        .toList());
+  }
 
+  // ── Queries ───────────────────────────────────────────────────────────────
+
+  Future<List<StoreModel>> getStoresByCategory(String category) async {
+    final res = await _col.where('category', isEqualTo: category).get();
     return res.docs
-        .map((doc) =>
-        StoreModel.fromJson(doc.data() as Map<String, dynamic>))
+        .map((d) => StoreModel.fromJson(d.data() as Map<String, dynamic>))
         .toList();
   }
 
-  // ✅ NEARBY STORES (basic version)
   Future<List<StoreModel>> getStoresNearby({
     required double lat,
     required double lng,
     required double radiusKm,
   }) async {
-    final res = await _firestore.stores.get();
-
-    final allStores = res.docs
-        .map((doc) =>
-        StoreModel.fromJson(doc.data() as Map<String, dynamic>))
+    final res = await _col.get();
+    final all = res.docs
+        .map((d) => StoreModel.fromJson(d.data() as Map<String, dynamic>))
         .toList();
 
-    // simple distance filter
-    return allStores.where((store) {
-      final distance = _calculateDistance(
-        lat,
-        lng,
-        store.latitude,
-        store.longitude,
-      );
-      return distance <= radiusKm;
-    }).toList();
+    return all
+        .where((s) =>
+    _haversine(lat, lng, s.latitude, s.longitude) <= radiusKm)
+        .toList();
   }
 
-  // ✅ HAVERSINE
-  double _calculateDistance(
-      double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371; // km
-    final dLat = _deg2rad(lat2 - lat1);
-    final dLon = _deg2rad(lon2 - lon1);
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
-    final a =
-        (sin(dLat / 2) * sin(dLat / 2)) +
-            cos(_deg2rad(lat1)) *
-                cos(_deg2rad(lat2)) *
-                (sin(dLon / 2) * sin(dLon / 2));
-
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0;
+    final dLat = _rad(lat2 - lat1);
+    final dLon = _rad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_rad(lat1)) * cos(_rad(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
-  double _deg2rad(double deg) => deg * (pi / 180);
+  double _rad(double deg) => deg * (pi / 180);
 }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +12,19 @@ import '../../widgets/glassmorphic/glass_card.dart';
 import '../store/add_store_screen.dart';
 import '../cart/store_lists_screen.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/providers.dart';
+import '../../../core/utils/logger.dart';
+import '../../../data/models/store_model.dart';
+import '../../widgets/glassmorphic/glass_card.dart';
+import '../store/add_store_screen.dart';
+
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -25,6 +37,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String? _selectedStoreUuid;
   bool _showStorePanel = false;
 
+  // 1. Flag to prevent calling move() before map is ready
+  bool _isMapReady = false;
+
   static const _defaultLatLng = LatLng(23.8103, 90.4125); // Dhaka, BD
 
   final List<String> _categories = [
@@ -35,81 +50,68 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
+    // Start location request after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestLocationAndInit();
     });
   }
 
   Future<void> _requestLocationAndInit() async {
-    // 1. Check if services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      AppLogger.e("Location services are disabled.");
-
-      // OPTION A: Show a snackbar with a button to open settings
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Location services are disabled.'),
             action: SnackBarAction(
-              label: 'Enable',
-              onPressed: () => Geolocator.openLocationSettings(),
-            ),
+                label: 'Enable',
+                onPressed: () => Geolocator.openLocationSettings()),
           ),
         );
       }
-
-      ref.read(locationProvider.notifier).setError('Location services are disabled.');
+      ref.read(locationProvider.notifier).setError('Location services disabled.');
       return;
     }
 
-    // 2. Check current permission status
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      // This triggers the actual system "Allow NearCart to access location?" popup
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        ref.read(locationProvider.notifier).setError('Location permissions are denied');
+        ref.read(locationProvider.notifier).setError('Permission denied');
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // User has clicked "Don't ask again"
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are permanently denied. Please enable them in settings.'))
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Location permanently denied. Enable in settings.')));
       }
       return;
     }
 
-    // 3. Notify provider we are loading
     ref.read(locationProvider.notifier).setLoading();
 
     try {
-      // 4. Get Current Position
-      // Using a timeLimit is good, but 5 seconds might be too short for a cold GPS start
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
 
-      // 5. Update the Riverpod State
-      ref.read(locationProvider.notifier).setLocation(pos.latitude, pos.longitude);
+      ref
+          .read(locationProvider.notifier)
+          .setLocation(pos.latitude, pos.longitude);
 
-      // 6. Move the Map
-      _mapController.move(
-        LatLng(pos.latitude, pos.longitude),
-        15.0,
-      );
-
+      // 2. Check the flag before using the controller
+      if (_isMapReady) {
+        _mapController.move(LatLng(pos.latitude, pos.longitude), 15.0);
+      }
     } catch (e) {
-      AppLogger.e("Error getting location: $e");
+      AppLogger.e('Error getting location: $e');
       ref.read(locationProvider.notifier).setError(e.toString());
     }
   }
-
 
   void _selectStore(String uuid) {
     setState(() {
@@ -117,53 +119,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _showStorePanel = true;
     });
 
-    final store = ref
-        .read(allStoresProvider)
-        .value
-        ?.firstWhere((s) => s.uuid == uuid);
-    if (store != null) {
+    final store = ref.read(allStoresProvider).value?.firstWhere((s) => s.uuid == uuid);
+
+    // 3. Check the flag here as well
+    if (store != null && _isMapReady) {
       _mapController.move(LatLng(store.latitude, store.longitude), 15);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final storesAsync = ref.watch(allStoresProvider);
+    final allStoresAsync = ref.watch(allStoresProvider);
     final location = ref.watch(locationProvider);
+    final currentUid = ref.watch(currentUidProvider);
 
-    final markers = storesAsync.maybeWhen(
-      data: (stores) =>
-          stores
-              .where((s) =>
-          _selectedCategory == 'All' ||
-              s.category.toLowerCase() == _selectedCategory.toLowerCase())
-              .map((store) =>
-              Marker(
-                point: LatLng(store.latitude, store.longitude),
-                width: 45,
-                height: 45,
-                child: GestureDetector(
-                  onTap: () => _selectStore(store.uuid),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _selectedStoreUuid == store.uuid ? AppColors
-                          .primary : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 2),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12,
-                            blurRadius: 8,
-                            offset: Offset(0, 4))
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(store.iconEmoji ?? '🏬',
-                          style: const TextStyle(fontSize: 22)),
-                    ),
-                  ),
-                ),
-              ))
-              .toList(),
+    final markers = allStoresAsync.maybeWhen(
+      data: (stores) => stores
+          .where((s) =>
+      _selectedCategory == 'All' ||
+          s.category.toLowerCase() == _selectedCategory.toLowerCase())
+          .map((store) {
+        final isOwn = store.userId == currentUid;
+        final isSelected = _selectedStoreUuid == store.uuid;
+
+        return Marker(
+          point: LatLng(store.latitude, store.longitude),
+          width: 50,
+          height: 50,
+          child: GestureDetector(
+            onTap: () => _selectStore(store.uuid),
+            child: Icon(
+              Icons.location_on,
+              size: isSelected ? 45 : 35,
+              color: isOwn ? AppColors.primary : Colors.grey.shade400,
+            ),
+          ),
+        );
+      }).toList(),
       orElse: () => <Marker>[],
     );
 
@@ -171,7 +163,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Map Layer
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -180,6 +171,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   : _defaultLatLng,
               initialZoom: 14,
               onTap: (_, __) => setState(() => _showStorePanel = false),
+              // 4. Critical: Set the flag and move if location was already found
+              onMapReady: () {
+                setState(() => _isMapReady = true);
+                if (location.hasLocation) {
+                  _mapController.move(LatLng(location.lat!, location.lng!), 15.0);
+                }
+              },
             ),
             children: [
               TileLayer(
@@ -208,7 +206,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ],
           ),
 
-          // 2. Search + Filters
+          // Search + Filters
           SafeArea(
             child: Column(
               children: [
@@ -244,6 +242,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
                 ),
+
+                // Legend
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: Row(
+                    children: [
+                      _LegendDot(color: AppColors.primary, label: 'My stores'),
+                      const SizedBox(width: AppSpacing.md),
+                      _LegendDot(color: Colors.grey.shade400, label: "Others' stores"),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Category chips
                 SizedBox(
                   height: 40,
                   child: ListView.separated(
@@ -284,64 +297,167 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // 3. Bottom Panels (Store Details OR Nearby List)
+          // Store Panel
           if (_showStorePanel && _selectedStoreUuid != null)
             Positioned(
-              bottom: 90, left: 0, right: 0,
-              child: _StoreDetailPanel(
-                storeUuid: _selectedStoreUuid!,
-                stores: storesAsync.value ?? [],
-                onClose: () => setState(() => _showStorePanel = false),
+              bottom: 90,
+              left: 0,
+              right: 0,
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Store Details", style: TextStyle(fontWeight: FontWeight.bold)),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setState(() => _showStorePanel = false),
+                        )
+                      ],
+                    ),
+                    // Store Panel
+                    if (_showStorePanel && _selectedStoreUuid != null)
+                      Positioned(
+                        bottom: 100, // Adjusted to sit above the Bottom Nav Bar
+                        left: 16,
+                        right: 16,
+                        child: allStoresAsync.maybeWhen(
+                          data: (stores) {
+                            // Find the specific store data
+                            final store = stores.firstWhere(
+                                  (s) => s.uuid == _selectedStoreUuid,
+                              orElse: () => stores.first,
+                            );
+
+                            return _StoreDetailPanel(
+                              storeUuid: store.uuid,
+                              stores: stores,
+                              currentUid: currentUid,
+                              onClose: () => setState(() => _showStorePanel = false),
+                            ).animate().slideY(begin: 1, end: 0, curve: Curves.easeOutCubic);
+                          },
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      ),
+                  ],
+                ),
               ).animate().slideY(begin: 1, end: 0),
             )
-          else
-            Positioned(
-              bottom: 0, left: 0, right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.white, Colors.white.withOpacity(0)],
-                  ),
-                ),
-                padding: const EdgeInsets.only(top: 40),
-                child: _NearbyStoresList(
-                  stores: storesAsync.value ?? [],
-                  onStoreTap: _selectStore,
-                ),
-              ),
-            ),
-
-          // 4. Location FAB - MUST BE LAST TO BE ON TOP
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            // Slides up when panel is open (330), stays down when horizontal list is visible (180)
-            bottom: _showStorePanel ? 330 : 180,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _requestLocationAndInit, // Make sure this moves the map
-              backgroundColor: Colors.white,
-              elevation: 6,
-              child: const Icon(Icons.my_location_rounded, color: AppColors.primary),
-            ).animate().fadeIn().scale(),
-          ),
         ],
       ),
     );
   }
 }
 
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+      ],
+    );
+  }
+}
+
+// ── Store Marker ──────────────────────────────────────────────────────────────
+
+/// Green/primary ring = own store | Grey ring = others' store
+class _StoreMarker extends StatelessWidget {
+  final StoreModel store;
+  final bool isOwn;
+  final bool isSelected;
+
+  const _StoreMarker(
+      {required this.store, required this.isOwn, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isOwn ? AppColors.primary : Colors.grey.shade400;
+    final bgColor = isSelected
+        ? (isOwn ? AppColors.primary : Colors.grey.shade500)
+        : Colors.white;
+
+    return Stack(
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: bgColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: borderColor, width: isOwn ? 2.5 : 1.5),
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))
+            ],
+          ),
+          child: Center(
+            child: Text(store.iconEmoji ?? '🏬',
+                style: const TextStyle(fontSize: 22)),
+          ),
+        ),
+        // "Mine" star badge
+        if (isOwn)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: const Center(
+                child: Text('★',
+                    style: TextStyle(color: Colors.white, fontSize: 7)),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+
+
+// ── Nearby list ───────────────────────────────────────────────────────────────
+
 class _NearbyStoresList extends StatelessWidget {
   final List<StoreModel> stores;
+  final String? currentUid;
   final void Function(String) onStoreTap;
 
-  const _NearbyStoresList({required this.stores, required this.onStoreTap});
+  const _NearbyStoresList(
+      {required this.stores,
+        required this.currentUid,
+        required this.onStoreTap});
 
   @override
   Widget build(BuildContext context) {
     if (stores.isEmpty) return const SizedBox.shrink();
+
     return Container(
       height: 150,
       margin: const EdgeInsets.only(bottom: 24),
@@ -352,14 +468,25 @@ class _NearbyStoresList extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
         itemBuilder: (_, i) {
           final store = stores[i];
+          final isOwn = store.userId == currentUid;
+
           return Container(
             width: 170,
+            padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(
+                color: isOwn
+                    ? AppColors.primary.withOpacity(0.4)
+                    : Colors.black12,
+                width: isOwn ? 1.5 : 1,
+              ),
               boxShadow: const [
                 BoxShadow(
-                    color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, 4))
               ],
             ),
             child: Material(
@@ -367,18 +494,41 @@ class _NearbyStoresList extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 onTap: () => onStoreTap(store.uuid),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(store.iconEmoji ?? '🏬',
-                        style: const TextStyle(fontSize: 28)),
+                    Row(
+                      children: [
+                        Text(store.iconEmoji ?? '🏬',
+                            style: const TextStyle(fontSize: 26)),
+                        if (isOwn) ...[
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius:
+                              BorderRadius.circular(AppRadius.full),
+                            ),
+                            child: Text('Mine',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ],
+                    ),
                     const Spacer(),
-                    Text(store.name, style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
-                        maxLines: 1),
-                    Text(store.category, style: const TextStyle(
-                        color: Colors.black54, fontSize: 12)),
+                    Text(store.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    Text(store.category,
+                        style: const TextStyle(
+                            color: Colors.black54, fontSize: 12)),
                   ],
                 ),
               ),
@@ -390,18 +540,25 @@ class _NearbyStoresList extends StatelessWidget {
   }
 }
 
+// ── Store detail panel ────────────────────────────────────────────────────────
+
 class _StoreDetailPanel extends ConsumerWidget {
   final String storeUuid;
   final List<StoreModel> stores;
+  final String? currentUid;
   final VoidCallback onClose;
 
   const _StoreDetailPanel(
-      {required this.storeUuid, required this.stores, required this.onClose});
+      {required this.storeUuid,
+        required this.stores,
+        required this.currentUid,
+        required this.onClose});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final store = stores.firstWhere((s) => s.uuid == storeUuid,
-        orElse: () => stores.first);
+    final store =
+    stores.firstWhere((s) => s.uuid == storeUuid, orElse: () => stores.first);
+    final isOwn = store.userId == currentUid;
 
     return Container(
       decoration: const BoxDecoration(
@@ -419,17 +576,48 @@ class _StoreDetailPanel extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text(
-                  store.iconEmoji ?? '🏬', style: const TextStyle(fontSize: 40)),
+              Text(store.iconEmoji ?? '🏬',
+                  style: const TextStyle(fontSize: 40)),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(store.name, style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(store.name,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                        if (isOwn)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius:
+                              BorderRadius.circular(AppRadius.full),
+                              border: Border.all(
+                                  color: AppColors.primary.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              '⭐ My Store',
+                              style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
                     Text(store.address,
                         style: const TextStyle(color: Colors.black54)),
+                    Text(store.category,
+                        style: const TextStyle(
+                            color: Colors.black38, fontSize: 12)),
                   ],
                 ),
               ),
@@ -437,32 +625,56 @@ class _StoreDetailPanel extends ConsumerWidget {
                 onPressed: onClose,
                 icon: const Icon(Icons.close_rounded, color: Colors.black54),
                 style: IconButton.styleFrom(
-                    backgroundColor: Colors.black12.withOpacity(0.05)),
+                    backgroundColor:
+                    Colors.black12.withOpacity(0.05)),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
+
+          // Only show "View Store Lists" for own stores
+          if (isOwn)
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => StoreListsScreen(store: store)),
+                ),
+                child: const Text('View My Lists',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-              onPressed: () =>
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => StoreListsScreen(store: store)),
-                  ),
-              child: const Text('View Store Lists',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.storefront_outlined,
+                      color: Colors.black38, size: 18),
+                  SizedBox(width: 8),
+                  Text("Community store — view only",
+                      style: TextStyle(color: Colors.black54)),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

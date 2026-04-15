@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import '../core/theme/app_theme.dart';
+import '../core/providers.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/map/map_screen.dart';
+import 'screens/profile/profile_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -18,24 +20,22 @@ class _AppShellState extends ConsumerState<AppShell> {
   final _screens = const [
     HomeScreen(),
     MapScreen(),
+    ProfileScreen(),
   ];
 
   final _navItems = const [
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.map_rounded, label: 'Map'),
+    _NavItem(icon: Icons.person_rounded, label: 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(
-            left: 32, right: 32, bottom: 24),
+        padding: const EdgeInsets.only(left: 32, right: 32, bottom: 24),
         child: GlassContainer(
           blur: 30,
           color: Colors.white.withOpacity(0.08),
@@ -72,9 +72,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                       borderRadius: BorderRadius.circular(AppRadius.full),
                       border: isSelected
                           ? Border.all(
-                              color: AppColors.primary.withOpacity(0.3),
-                              width: 1,
-                            )
+                          color: AppColors.primary.withOpacity(0.3),
+                          width: 1)
                           : null,
                     ),
                     child: Row(
@@ -91,9 +90,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                           const SizedBox(width: 8),
                           Text(
                             item.label,
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: AppColors.primary,
-                            ),
+                            style: AppTextStyles.labelMedium
+                                .copyWith(color: AppColors.primary),
                           ),
                         ],
                       ],

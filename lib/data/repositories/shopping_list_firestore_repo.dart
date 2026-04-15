@@ -6,23 +6,46 @@ class ShoppingListFirestoreRepository {
 
   CollectionReference get _col => _db.collection('shopping_lists');
 
+  // ── Write ─────────────────────────────────────────────────────────────────
+
   Future<void> createList(ShoppingListModel list) async {
     await _col.doc(list.uuid).set(list.toJson());
   }
 
-  Stream<List<ShoppingListModel>> watchAllLists() {
-    return _col.snapshots().map((snap) =>
-        snap.docs.map((e) => ShoppingListModel.fromJson(e.data() as Map<String, dynamic>)).toList());
+  Future<void> _updateList(ShoppingListModel list) async {
+    await _col.doc(list.uuid).update(list.toJson());
   }
 
-  Stream<List<ShoppingListModel>> watchListsForStore(String storeUuid) {
+  Future<void> deleteList(String uuid) async {
+    await _col.doc(uuid).delete();
+  }
+
+  // ── Streams ───────────────────────────────────────────────────────────────
+
+  /// All lists for the current user
+  Stream<List<ShoppingListModel>> watchMyLists(String userId) {
+    return _col
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map(_mapSnap);
+  }
+
+  /// Lists for a specific store, scoped to current user
+  Stream<List<ShoppingListModel>> watchListsForStore(
+      String storeUuid, String userId) {
     return _col
         .where('storeUuid', isEqualTo: storeUuid)
+        .where('userId', isEqualTo: userId)
         .snapshots()
-        .map((snap) => snap.docs
-        .map((e) => ShoppingListModel.fromJson(e.data() as Map<String, dynamic>))
-        .toList());
+        .map(_mapSnap);
   }
+
+  List<ShoppingListModel> _mapSnap(QuerySnapshot snap) => snap.docs
+      .map((d) =>
+      ShoppingListModel.fromJson(d.data() as Map<String, dynamic>))
+      .toList();
+
+  // ── Reads ─────────────────────────────────────────────────────────────────
 
   Future<ShoppingListModel?> getListByUuid(String uuid) async {
     final doc = await _col.doc(uuid).get();
@@ -30,9 +53,7 @@ class ShoppingListFirestoreRepository {
     return ShoppingListModel.fromJson(doc.data() as Map<String, dynamic>);
   }
 
-  Future<void> _updateList(ShoppingListModel list) async {
-    await _col.doc(list.uuid).update(list.toJson());
-  }
+  // ── Item mutations ────────────────────────────────────────────────────────
 
   Future<ShoppingListModel> addItemToList(
       ShoppingListModel list, CartItemModel item) async {
@@ -56,38 +77,41 @@ class ShoppingListFirestoreRepository {
     return list;
   }
 
-  Future<Map<String, dynamic>> getStats() async {
-    final snap = await _col.get();
-    final lists = snap.docs
-        .map((e) => ShoppingListModel.fromJson(e.data() as Map<String, dynamic>))
-        .toList();
+  // ── Stats (user-scoped) ───────────────────────────────────────────────────
 
-    final active = lists.where((e) => !e.isCompleted).length;
-    final completed = lists.where((e) => e.isCompleted).length;
+  Future<Map<String, dynamic>> getStats(String userId) async {
+    final snap =
+    await _col.where('userId', isEqualTo: userId).get();
+    final lists = snap.docs
+        .map((d) =>
+        ShoppingListModel.fromJson(d.data() as Map<String, dynamic>))
+        .toList();
 
     return {
       'totalLists': lists.length,
-      'activeLists': active,
-      'completedLists': completed,
+      'activeLists': lists.where((e) => !e.isCompleted).length,
+      'completedLists': lists.where((e) => e.isCompleted).length,
     };
   }
 
+  // ── Factory ───────────────────────────────────────────────────────────────
+
   ShoppingListModel createShoppingList({
     required String uuid,
+    required String userId,
     required String name,
     required String storeUuid,
     required String storeName,
   }) {
     final now = DateTime.now();
-
     return ShoppingListModel(
       uuid: uuid,
+      userId: userId,
       name: name,
       storeUuid: storeUuid,
       storeName: storeName,
       createdAt: now,
       updatedAt: now,
-      items: [],
     );
   }
 }
