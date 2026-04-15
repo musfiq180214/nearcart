@@ -671,7 +671,7 @@ class _StoreDetailPanel extends ConsumerWidget {
                       color: Colors.black38, size: 18),
                   SizedBox(width: 8),
                   Text("Community store — view only",
-                      style: TextStyle(color: Colors.black54)),
+                      style: TextStyle(color: Colors.black54, fontSize: 10)),
                 ],
               ),
             ),

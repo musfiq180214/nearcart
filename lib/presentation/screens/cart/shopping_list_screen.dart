@@ -79,14 +79,18 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
         builder: (ctx, setBS) => Padding(
           padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: GlassCard(
-            borderRadius: AppRadius.xl,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+            ),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Title ──────────────────────────────────────────────
-                Text('Add Item', style: AppTextStyles.headingLarge),
+                Text('Add Item', style: AppTextStyles.headingLarge.copyWith(color: Colors.black)),
                 const SizedBox(height: AppSpacing.md),
 
                 // ── Emoji picker ───────────────────────────────────────
@@ -95,29 +99,25 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: emojis.length,
-                    separatorBuilder: (_, __) =>
-                    const SizedBox(width: 8),
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (_, i) => GestureDetector(
-                      onTap: () =>
-                          setBS(() => selectedEmoji = emojis[i]),
+                      onTap: () => setBS(() => selectedEmoji = emojis[i]),
                       child: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
                           color: selectedEmoji == emojis[i]
-                              ? AppColors.primary.withOpacity(0.2)
-                              : AppColors.glassWhite,
-                          borderRadius:
-                          BorderRadius.circular(AppRadius.md),
+                              ? AppColors.primary.withOpacity(0.1)
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           border: Border.all(
                             color: selectedEmoji == emojis[i]
                                 ? AppColors.primary
-                                : AppColors.glassBorder,
+                                : Colors.transparent,
                           ),
                         ),
                         child: Center(
-                          child: Text(emojis[i],
-                              style: const TextStyle(fontSize: 20)),
+                          child: Text(emojis[i], style: const TextStyle(fontSize: 20)),
                         ),
                       ),
                     ),
@@ -129,9 +129,16 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                 TextField(
                   controller: nameCtrl,
                   autofocus: true,
-                  style: AppTextStyles.bodyLarge,
-                  decoration:
-                  const InputDecoration(hintText: 'Item name'),
+                  style: AppTextStyles.bodyLarge.copyWith(color: Colors.black),
+                  decoration: InputDecoration(
+                    hintText: 'Item name',
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
 
@@ -142,18 +149,26 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                       child: TextField(
                         controller: qtyCtrl,
                         keyboardType: TextInputType.number,
-                        style: AppTextStyles.bodyLarge,
-                        decoration:
-                        const InputDecoration(hintText: 'Qty'),
+                        style: AppTextStyles.bodyLarge.copyWith(color: Colors.black),
+                        decoration: InputDecoration(
+                          hintText: 'Qty',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(AppRadius.md)),
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: TextField(
                         controller: unitCtrl,
-                        style: AppTextStyles.bodyLarge,
-                        decoration: const InputDecoration(
-                            hintText: 'Unit (kg, pcs…)'),
+                        style: AppTextStyles.bodyLarge.copyWith(color: Colors.black),
+                        decoration: InputDecoration(
+                          hintText: 'Unit',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(AppRadius.md)),
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -161,9 +176,13 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                       child: TextField(
                         controller: priceCtrl,
                         keyboardType: TextInputType.number,
-                        style: AppTextStyles.bodyLarge,
-                        decoration:
-                        const InputDecoration(hintText: '৳ Price'),
+                        style: AppTextStyles.bodyLarge.copyWith(color: Colors.black),
+                        decoration: InputDecoration(
+                          hintText: '৳ Price',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.circular(AppRadius.md)),
+                        ),
                       ),
                     ),
                   ],
@@ -174,54 +193,36 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: cats
-                      .map((c) => GestureDetector(
-                    onTap: () =>
-                        setBS(() => selectedCat = c),
+                  children: cats.map((c) => GestureDetector(
+                    onTap: () => setBS(() => selectedCat = c),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: selectedCat == c
-                            ? AppColors.primary.withOpacity(0.2)
-                            : AppColors.glassWhite,
-                        borderRadius: BorderRadius.circular(
-                            AppRadius.full),
-                        border: Border.all(
-                          color: selectedCat == c
-                              ? AppColors.primary
-                              : AppColors.glassBorder,
-                        ),
+                        color: selectedCat == c ? AppColors.primary : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: Text(c,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(
-                            color: selectedCat == c
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: selectedCat == c ? Colors.white : Colors.black87,
                           )),
                     ),
-                  ))
-                      .toList(),
+                  )).toList(),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
                 // ── Add button ─────────────────────────────────────────
                 SizedBox(
                   width: double.infinity,
-                  child: GestureDetector(
-                    onTap: () async {
+                  child: ElevatedButton(
+                    onPressed: () async {
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty) return;
                       final item = CartItemModel(
                         uuid: const Uuid().v4(),
                         name: name,
                         quantity: int.tryParse(qtyCtrl.text) ?? 1,
-                        unit: unitCtrl.text.trim().isEmpty
-                            ? null
-                            : unitCtrl.text.trim(),
-                        estimatedPrice:
-                        double.tryParse(priceCtrl.text),
+                        unit: unitCtrl.text.trim().isEmpty ? null : unitCtrl.text.trim(),
+                        estimatedPrice: double.tryParse(priceCtrl.text),
                         category: selectedCat,
                         iconEmoji: selectedEmoji,
                         isChecked: false,
@@ -234,21 +235,15 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
                         if (mounted) setState(() => _list = updated);
                       }
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                            colors: AppColors.primaryGradient),
-                        borderRadius:
-                        BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Add to List',
-                          style: AppTextStyles.headingMedium
-                              .copyWith(color: AppColors.background),
-                        ),
-                      ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Add to List',
+                      style: AppTextStyles.headingMedium.copyWith(color: Colors.white),
                     ),
                   ),
                 ),
@@ -265,13 +260,15 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body:
-        Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
     if (_list == null) {
       return const Scaffold(
-          body: Center(child: Text('List not found')));
+        backgroundColor: Colors.white,
+        body: Center(child: Text('List not found')),
+      );
     }
 
     final list = _list!;
@@ -279,184 +276,146 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     final checked = list.items.where((i) => i.isChecked).toList();
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: AppColors.backgroundGradient,
-          ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ── Header ─────────────────────────────────────────────────
-              Padding(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(list.name, style: AppTextStyles.headingMedium.copyWith(color: Colors.black)),
+            Text(list.storeName, style: AppTextStyles.bodySmall.copyWith(color: Colors.grey)),
+          ],
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Progress card ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
                   children: [
-                    GlassCard(
-                      padding: const EdgeInsets.all(10),
-                      borderRadius: AppRadius.md,
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_back_ios_rounded,
-                          size: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${list.checkedItems}/${list.totalItems} items',
+                                style: AppTextStyles.headingLarge.copyWith(color: Colors.black),
+                              ),
+                              Text(
+                                'Est. ৳${list.totalEstimatedCost.toStringAsFixed(0)}',
+                                style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${(list.progress * 100).toInt()}%',
+                          style: AppTextStyles.displayLarge.copyWith(
+                            color: list.isCompleted ? AppColors.success : AppColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(list.name,
-                              style: AppTextStyles.displayMedium),
-                          Text(list.storeName,
-                              style: AppTextStyles.bodyMedium),
-                        ],
+                    const SizedBox(height: AppSpacing.md),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      child: LinearProgressIndicator(
+                        value: list.progress,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation(
+                          list.isCompleted ? AppColors.success : AppColors.primary,
+                        ),
+                        minHeight: 8,
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
 
-              // ── Progress card ──────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md),
-                child: GlowGlassCard(
-                  glowColor: list.isCompleted
-                      ? AppColors.success
-                      : AppColors.primary,
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${list.checkedItems}/${list.totalItems} items',
-                                  style: AppTextStyles.headingLarge,
-                                ),
-                                Text(
-                                  'Est. ৳${list.totalEstimatedCost.toStringAsFixed(0)}',
-                                  style: AppTextStyles.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '${(list.progress * 100).toInt()}%',
-                            style: AppTextStyles.displayLarge.copyWith(
-                              color: list.isCompleted
-                                  ? AppColors.success
-                                  : AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      ClipRRect(
-                        borderRadius:
-                        BorderRadius.circular(AppRadius.full),
-                        child: LinearProgressIndicator(
-                          value: list.progress,
-                          backgroundColor: AppColors.glassWhite,
-                          valueColor: AlwaysStoppedAnimation(
-                            list.isCompleted
-                                ? AppColors.success
-                                : AppColors.primary,
-                          ),
-                          minHeight: 6,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // ── Items list ─────────────────────────────────────────────
-              Expanded(
-                child: list.items.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('📋',
-                          style: TextStyle(fontSize: 56)),
-                      const SizedBox(height: AppSpacing.md),
-                      Text('List is empty',
-                          style: AppTextStyles.headingLarge),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text('Tap + to add your first item',
-                          style: AppTextStyles.bodyMedium),
-                    ],
-                  ),
-                )
-                    : ListView(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md),
+            // ── Items list ─────────────────────────────────────────────
+            Expanded(
+              child: list.items.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (unchecked.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: AppSpacing.sm),
-                        child: Text('To Get',
-                            style: AppTextStyles.labelMedium),
-                      ),
-                      ...unchecked.asMap().entries.map(
-                            (e) => Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: AppSpacing.sm),
-                          child: CartItemTile(
-                            item: e.value,
-                            animIndex: e.key,
-                            onToggle: () =>
-                                _toggleItem(e.value.uuid),
-                            onDelete: () =>
-                                _removeItem(e.value.uuid),
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (checked.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: AppSpacing.sm),
-                        child: Text('In Cart',
-                            style: AppTextStyles.labelMedium),
-                      ),
-                      ...checked.asMap().entries.map(
-                            (e) => Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: AppSpacing.sm),
-                          child: CartItemTile(
-                            item: e.value,
-                            animIndex: e.key,
-                            onToggle: () =>
-                                _toggleItem(e.value.uuid),
-                            onDelete: () =>
-                                _removeItem(e.value.uuid),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 80),
+                    const Text('📋', style: TextStyle(fontSize: 56)),
+                    const SizedBox(height: AppSpacing.md),
+                    Text('List is empty', style: AppTextStyles.headingLarge.copyWith(color: Colors.black)),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text('Tap + to add your first item', style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey)),
                   ],
                 ),
+              )
+                  : ListView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                children: [
+                  if (unchecked.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      child: Text('To Get', style: AppTextStyles.labelMedium.copyWith(color: Colors.grey[700])),
+                    ),
+                    ...unchecked.asMap().entries.map(
+                          (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: CartItemTile(
+                          item: e.value,
+                          animIndex: e.key,
+                          onToggle: () => _toggleItem(e.value.uuid),
+                          onDelete: () => _removeItem(e.value.uuid),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (checked.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      child: Text('In Cart', style: AppTextStyles.labelMedium.copyWith(color: Colors.grey[700])),
+                    ),
+                    ...checked.asMap().entries.map(
+                          (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Opacity(
+                          opacity: 0.6,
+                          child: CartItemTile(
+                            item: e.value,
+                            animIndex: e.key,
+                            onToggle: () => _toggleItem(e.value.uuid),
+                            onDelete: () => _removeItem(e.value.uuid),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 80),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addItem,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Item'),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text('Add Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.background,
       ),
     );
   }

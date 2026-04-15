@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/material.dart';import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/shopping_list_model.dart';
 
@@ -40,14 +39,22 @@ class CartItemTile extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: item.isChecked
-                ? AppColors.glassWhite.withOpacity(0.5)
-                : AppColors.glassWhite,
+                ? Colors.grey.shade50
+                : Colors.white,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: item.isChecked
                   ? AppColors.success.withOpacity(0.3)
-                  : AppColors.glassBorder,
+                  : Colors.grey.shade200, // Changed from glassBorder to visible grey
             ),
+            boxShadow: [
+              if (!item.isChecked)
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+            ],
           ),
           child: Row(
             children: [
@@ -59,12 +66,12 @@ class CartItemTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: item.isChecked
                       ? AppColors.success
-                      : Colors.transparent,
+                      : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: item.isChecked
                         ? AppColors.success
-                        : AppColors.glassBorder,
+                        : Colors.grey.shade400, // Visible border for the circle
                     width: 2,
                   ),
                 ),
@@ -80,7 +87,7 @@ class CartItemTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 22,
                     color: item.isChecked
-                        ? Colors.white54
+                        ? Colors.black38
                         : null,
                   )),
               const SizedBox(width: AppSpacing.sm),
@@ -97,8 +104,11 @@ class CartItemTile extends StatelessWidget {
                             ? TextDecoration.lineThrough
                             : null,
                         color: item.isChecked
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
+                            ? Colors.grey // Muted color when checked
+                            : Colors.black, // Strong black when unchecked
+                        fontWeight: item.isChecked
+                            ? FontWeight.normal
+                            : FontWeight.w600,
                       ),
                     ),
                     if (item.unit != null ||
@@ -109,7 +119,9 @@ class CartItemTile extends StatelessWidget {
                           '${item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
                           if (item.category != null) item.category!,
                         ].join(' · '),
-                        style: AppTextStyles.bodySmall,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ],
@@ -126,7 +138,7 @@ class CartItemTile extends StatelessWidget {
                       '৳${(item.estimatedPrice! * item.quantity).toStringAsFixed(0)}',
                       style: AppTextStyles.labelMedium.copyWith(
                         color: item.isChecked
-                            ? AppColors.textMuted
+                            ? Colors.grey
                             : AppColors.primary,
                         decoration: item.isChecked
                             ? TextDecoration.lineThrough
@@ -136,7 +148,9 @@ class CartItemTile extends StatelessWidget {
                     if (item.quantity > 1)
                       Text(
                         '৳${item.estimatedPrice!.toStringAsFixed(0)} each',
-                        style: AppTextStyles.bodySmall,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                   ],
                 ),
