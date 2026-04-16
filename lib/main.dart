@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:nearcart/core/utils/logger.dart';
 import 'auth_gate.dart';
 import 'core/theme/app_theme.dart';
 
@@ -36,7 +37,7 @@ Future<void> NearCartAppMain() async {
     );
   } catch (e) {
     // This will help you see if Firebase initialization itself is failing
-    debugPrint("Error during initialization: $e");
+    AppLogger.e("Error during initialization of firebase or systemChrome: $e");
   }
 }
 
