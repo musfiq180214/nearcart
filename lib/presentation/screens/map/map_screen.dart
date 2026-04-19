@@ -455,7 +455,7 @@ class _StoreDetailPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   store.name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ),
               IconButton(

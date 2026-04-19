@@ -7,6 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers.dart';
+import '../../../core/utils/logger.dart';
 import '../../../data/models/store_model.dart';
 import '../../../data/repositories/store_repository.dart';
 
@@ -373,11 +374,30 @@ class _MapPickerScreen extends StatefulWidget {
 
 class _MapPickerScreenState extends State<_MapPickerScreen> {
   late LatLng _currentCenter;
+  final MapController _mapController = MapController();
+  bool _isLocating = false;
 
   @override
   void initState() {
     super.initState();
     _currentCenter = widget.initialLocation;
+  }
+
+  Future<void> _goToMyLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+      final myLatLng = LatLng(pos.latitude, pos.longitude);
+      _mapController.move(myLatLng, 16);
+      setState(() => _currentCenter = myLatLng);
+    } catch (e) {
+      AppLogger.e('Error getting location in picker: $e');
+    } finally {
+      setState(() => _isLocating = false);
+    }
   }
 
   @override
@@ -397,6 +417,7 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
       body: Stack(
         children: [
           FlutterMap(
+            mapController: _mapController,       // <-- wire up the controller
             options: MapOptions(
               initialCenter: widget.initialLocation,
               initialZoom: 16,
@@ -413,12 +434,36 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
               ),
             ],
           ),
+
+          // Crosshair pin
           const Center(
             child: Padding(
-              padding: EdgeInsets.only(bottom: 40), // Offset icon tip to exact center
+              padding: EdgeInsets.only(bottom: 40),
               child: Icon(Icons.location_on, color: AppColors.primary, size: 45),
             ),
           ),
+
+          // My Location FAB
+          Positioned(
+            right: 16,
+            bottom: 90,
+            child: FloatingActionButton(
+              heroTag: "picker_my_location",
+              mini: true,
+              backgroundColor: Colors.white,
+              elevation: 6,
+              onPressed: _isLocating ? null : _goToMyLocation,
+              child: _isLocating
+                  ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+              )
+                  : const Icon(Icons.my_location, color: AppColors.primary),
+            ),
+          ),
+
+          // Hint bar
           Positioned(
             bottom: 20,
             left: 20,
