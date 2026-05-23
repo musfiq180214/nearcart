@@ -18,7 +18,7 @@ The app features a clean, white-themed interface with glassmorphic elements and 
 - **Framework**: [Flutter](https://flutter.dev)
 - **State Management**: [Riverpod](https://riverpod.dev) (Functional providers)
 - **Mapping**: [flutter_map](https://pub.dev/packages/flutter_map) (OpenStreetMap)
-- **Local Database**: [Isar](https://isar.dev) / [Shared Preferences]
+- **Local Database**: [Isar](https://isar.dev)
 - **Animations**: [flutter_animate](https://pub.dev/packages/flutter_animate)
 - **Geolocation**: [geolocator](https://pub.dev/packages/geolocator)
 
