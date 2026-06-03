@@ -163,32 +163,42 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final location = ref.watch(locationProvider);
     final currentUid = ref.watch(currentUidProvider);
 
-    final markers = allStoresAsync.maybeWhen(
+    ref.listen(allStoresProvider, (previous, next) {
+      if (next.hasError) {
+        AppLogger.e("Store Loading Error: ${next.error}");
+      }
+    });
+
+
+    final List<Marker> markers = allStoresAsync.when(
       data: (stores) => stores
           .where((s) =>
-      _selectedCategory == 'All' ||
-          s.category.toLowerCase() == _selectedCategory.toLowerCase())
+              _selectedCategory == 'All' ||
+              s.category.toLowerCase() == _selectedCategory.toLowerCase())
           .map((store) {
-        final isOwn = store.userId == currentUid;
-        final isSelected = _selectedStoreUuid == store.uuid;
+            final isOwn = store.userId == currentUid;
+            final isSelected = _selectedStoreUuid == store.uuid;
 
-        return Marker(
-          point: LatLng(store.latitude, store.longitude),
-          width: 50,
-          height: 50,
-          child: GestureDetector(
-            onTap: () => _selectStore(store.uuid),
-            child: Icon(
-              Icons.location_on,
-              size: isSelected ? 45 : 35,
-              color: isOwn ? AppColors.primary : Colors.grey.shade400,
-            ),
-          ),
-        );
-      }).toList(),
-      orElse: () => <Marker>[],
+            return Marker(
+              point: LatLng(store.latitude, store.longitude),
+              width: 50,
+              height: 50,
+              child: GestureDetector(
+                onTap: () => _selectStore(store.uuid),
+                child: Icon(
+                  Icons.location_on,
+                  size: isSelected ? 45 : 35,
+                  color: isOwn ? AppColors.primary : Colors.grey.shade400,
+                ),
+              ),
+            );
+          }).toList(),
+      loading: () => <Marker>[],
+      error: (err, stack) {
+        AppLogger.e("Map Markers Error: $err");
+        return <Marker>[];
+      },
     );
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
