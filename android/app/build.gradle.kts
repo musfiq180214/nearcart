@@ -15,26 +15,16 @@ project.afterEvaluate {
         }
     }
 }
+
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
 }
 
 dependencies {
-    // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
-
-
-    // TODO: Add the dependencies for Firebase products you want to use
-    // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
-
-
-    // Add the dependencies for any other desired Firebase products
-    // https://firebase.google.com/docs/android/setup#available-libraries
 }
 
 android {
@@ -47,22 +37,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.nearcart"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-    // Changed "default" to "app" to match the flavors below
     flavorDimensions.add("app")
 
     productFlavors {
@@ -70,19 +58,14 @@ android {
             dimension = "app"
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
-            resValue("string", "app_name", "Near Cart Staging")
         }
         create("production") {
             dimension = "app"
-            resValue("string", "app_name", "Near Cart")
         }
     }
 
-
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

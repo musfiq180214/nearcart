@@ -1,0 +1,5 @@
+- [x] Upgrade Gradle to `9.1.0` in `gradle-wrapper.properties`
+- [x] Upgrade AGP to `9.0.1` and Kotlin to `2.3.20` in `settings.gradle.kts`
+- [x] Upgrade Google Services plugin in `android/build.gradle.kts`
+- [x] Update `compileSdkPreview` in `android/app/build.gradle.kts`
+- [ ] Run `flutter clean` and verify build

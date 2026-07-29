@@ -1,0 +1,5 @@
+- [x] Upgrade Gradle to 9.1.0 in `gradle-wrapper.properties`
+- [x] Upgrade AGP to 9.0.1 in `settings.gradle.kts`
+- [x] Upgrade Kotlin to 2.3.20 in `settings.gradle.kts`
+- [x] Update `compileSdk` to 2147483647 in `app/build.gradle.kts`
+- [/] Verify changes by running `flutter run`
